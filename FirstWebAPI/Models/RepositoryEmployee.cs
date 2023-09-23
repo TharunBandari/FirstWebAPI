@@ -1,62 +1,94 @@
-﻿namespace FirstWebAPI.Models
+﻿using FirstWebAPI.Models;
+using Microsoft.EntityFrameworkCore;
+using System.Numerics;
+
+
+
+namespace FirstWebAPI.Models
 {
     public class RepositoryEmployee
     {
-        private List<Employee> _employees; // Simulate in-memory storage
-        public RepositoryEmployee()
+        private NorthwindContext _context;
+        public RepositoryEmployee(NorthwindContext context)
         {
-            // Initialize the list of employees (you can load this from a database or another source)
-            _employees = new List<Employee>
+            _context = context;
+        }
+        public List<Employee> AllEmployees()
+        {
+            return _context.Employees.ToList();
+        }
+        public Employee FindEmpoyeeById(int id)
+        {
+            return _context.Employees.Find(id);
+        }
+        public int AddEmployee(Employee newEmployee)
+        {
+            _context.Employees.Add(newEmployee);
+            return _context.SaveChanges();
+        }
+        public int UpdateEmployee(Employee emp)
+        {
+            _context.Employees.Update(emp);
+            return _context.SaveChanges();
+        }
+        public int DeleteEmployee(int id)
+        {
+             Employee employeetodelete = _context.Employees.FirstOrDefault(e=> e.EmployeeId == id);
+            if(employeetodelete != null)
             {
-                new Employee { Id = 1, FirstName = "John", LastName = "Doe" },
-                new Employee { Id = 2, FirstName = "Jane", LastName = "Smith" }
-                // Add more employees as needed
-            };
-        }
-        public List<Employee> GetAllEmployees()
-        {
-            return _employees;
-        }
-        public Employee GetEmployeeById(int id)
-        {
-            return _employees.FirstOrDefault(e => e.Id == id);
-        }
-        public void AddEmployee(Employee employee)
-        {
-            if (employee == null)
-            {
-                throw new ArgumentNullException(nameof(employee));
+                _context.Employees.Remove(employeetodelete);
+                _context.SaveChanges();
+                
             }
-            employee.Id = GetNextEmployeeId();
-            _employees.Add(employee);
-        }
-        public void UpdateEmployee(Employee updatedEmployee)
-        {
-            if (updatedEmployee == null)
+            else
             {
-                throw new ArgumentNullException(nameof(updatedEmployee));
+                return 0;
             }
-            var existingEmployee = GetEmployeeById(updatedEmployee.Id);
-            if (existingEmployee == null)
-            {
-                throw new InvalidOperationException($"Employee with ID {updatedEmployee.Id} not found.");
-            }
-            // Update the existing employee data
-            existingEmployee.FirstName = updatedEmployee.FirstName;
-            existingEmployee.LastName = updatedEmployee.LastName;
-            // Update other properties as needed
+            return 1;
+
         }
-        public void DeleteEmployee(int id)
+        public IEnumerable<EmpViewModel> Lister(List<Employee> employees)
         {
-            var employeeToRemove = GetEmployeeById(id);
-            if (employeeToRemove != null)
-            {
-                _employees.Remove(employeeToRemove);
-            }
+            List<EmpViewModel> empList = (
+                from emp in employees
+                select new EmpViewModel()
+                {
+                    EmpId = emp.EmployeeId,
+                    FirstName = emp.FirstName,
+                    LastName = emp.LastName,
+                    BirthDate = emp.BirthDate,
+                    HireDate = emp.HireDate,
+                    Title = emp.Title,
+                    City = emp.City,
+                    ReportsTo = emp.ReportsTo
+                }
+                ).ToList();
+            return empList;
         }
-        private int GetNextEmployeeId()
+        public EmpViewModel Viewer(Employee employee)
         {
-            return _employees.Max(e => e.Id) + 1;
+            EmpViewModel employeeView = new EmpViewModel();
+            employeeView.EmpId = employee.EmployeeId;
+            employeeView.FirstName = employee.FirstName;
+            employeeView.LastName = employee.LastName;
+            employeeView.BirthDate = employee.BirthDate;
+            employeeView.HireDate = employee.HireDate;
+            employeeView.Title = employee.Title;
+            employeeView.City = employee.City;
+            employeeView.ReportsTo = employee.ReportsTo;
+            return employeeView;
+        }
+        public Employee ViewToEmp(EmpViewModel newEmployeeView)
+        {
+            Employee newEmployee = new Employee();
+            newEmployee.FirstName = newEmployeeView.FirstName;
+            newEmployee.LastName = newEmployeeView.LastName;
+            newEmployee.BirthDate = newEmployeeView.BirthDate;
+            newEmployee.HireDate = newEmployeeView.HireDate;
+            newEmployee.Title = newEmployeeView.Title;
+            newEmployee.City = newEmployeeView.City;
+            newEmployee.ReportsTo = newEmployeeView.ReportsTo;
+            return newEmployee;
         }
     }
 }

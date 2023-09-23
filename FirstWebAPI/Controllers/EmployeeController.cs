@@ -2,68 +2,68 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
+
+
 namespace FirstWebAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class EmployeeController : ControllerBase
     {
-        private readonly RepositoryEmployee _repositoryEmployee;
+        private RepositoryEmployee _repositoryEmployee;
         public EmployeeController(RepositoryEmployee repository)
         {
             _repositoryEmployee = repository;
         }
-        // GET: api/Employee
-        [HttpGet]
-        public ActionResult<IEnumerable<Employee>> GetEmployees()
+        [HttpGet("/ListAllEmployees")]
+        public IEnumerable<EmpViewModel> ListAllEmployees()
         {
-            List<Employee> employees = _repositoryEmployee.GetAllEmployees();
-            return Ok(employees); // Return employees as JSON
+            List<Employee> employees = _repositoryEmployee.AllEmployees();
+            IEnumerable<EmpViewModel> empList = _repositoryEmployee.Lister(employees);
+            return empList;
         }
-        // GET: api/Employee/5
-        [HttpGet("{id}")]
-        public ActionResult<Employee> GetEmployee(int id)
+        [HttpGet("/FindEmployee")]
+        public EmpViewModel FindEmployee(int id)
         {
-            Employee employee = _repositoryEmployee.GetEmployeeById(id);
-            if (employee == null)
-            {
-                return NotFound(); // Return a 404 Not Found response if the employee is not found
-            }
-            return Ok(employee); // Return employee as JSON
+            Employee employeeById = _repositoryEmployee.FindEmpoyeeById(id);
+            EmpViewModel empList = _repositoryEmployee.Viewer(employeeById);
+            return empList;
         }
-        // POST: api/Employee
-        [HttpPost]
-        public IActionResult CreateEmployee([FromBody] Employee employee)
+        [HttpPost("/AddEmployee")]
+        public string AddEmployee(EmpViewModel newEmployeeView)
         {
-            if (employee == null)
+            Employee newEmployee = _repositoryEmployee.ViewToEmp(newEmployeeView);
+            newEmployee.EmployeeId = 0;/**/
+            int employeestatus = _repositoryEmployee.AddEmployee(newEmployee);
+            if (employeestatus == 0)
             {
-                return BadRequest(); // Return a 400 Bad Request response if the request body is empty
+                return "Employee Not Added To Database Since it already exist";
             }
-            _repositoryEmployee.AddEmployee(employee);
-            return CreatedAtAction(nameof(GetEmployee), new { id = employee.Id }, employee); // Return the newly created employee as JSON
+            else
+            {
+                return "Employee Added To Database";
+            }
         }
-        // PUT: api/Employee/5
-        [HttpPut("{id}")]
-        public IActionResult UpdateEmployee(int id, [FromBody] Employee employee)
+        [HttpPut("/ModifyEmployee")]
+        public Employee ModifyEmployee(int id, [FromBody] EmpViewModel newEmployeeView)
         {
-            if (employee == null || id != employee.Id)
-            {
-                return BadRequest(); // Return a 400 Bad Request response if the request body is empty or the IDs do not match
-            }
-            _repositoryEmployee.UpdateEmployee(employee);
-            return NoContent(); // Return a 204 No Content response
+            Employee newEmployee = _repositoryEmployee.FindEmpoyeeById(id);
+            newEmployee = _repositoryEmployee.ViewToEmp(newEmployeeView);
+            _repositoryEmployee.UpdateEmployee(newEmployee);
+            return newEmployee;
         }
-        // DELETE: api/Employee/5
-        [HttpDelete("{id}")]
-        public IActionResult DeleteEmployee(int id)
+        [HttpDelete("/DeleteEmployee")]
+        public string DeleteEmployee(int id)
         {
-            Employee employee = _repositoryEmployee.GetEmployeeById(id);
-            if (employee == null)
+            int employeestatus = _repositoryEmployee.DeleteEmployee(id);
+            if (employeestatus == 0)
             {
-                return NotFound(); // Return a 404 Not Found response if the employee is not found
+                return "Employee does not exist in the Database";
             }
-            _repositoryEmployee.DeleteEmployee(id);
-            return NoContent(); // Return a 204 No Content response
+            else
+            {
+                return "Employee Successfully Deleted";
+            }
         }
     }
 }
